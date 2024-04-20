@@ -1,7 +1,31 @@
-<html>
-<head><title>test</title></head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>test</title>
+</head>
 <body> 
-<img align="middle" src="godzilla.gif">
-Dave O'Hallaron
+    <img align="middle" src="godzilla.gif">
+    <p>Dave O'Hallaron</p>
+    <form onsubmit="onSubmit(event)">
+        <input id="arg1">
+        <input id="arg2">
+        <button id="btn1" type="submit">Button</button>
+    </form>
 </body>
+<script>
+    function onSubmit(e){
+        e.preventDefault();
+        var arg1 = document.getElementById('arg1').value;
+        var arg2 = document.getElementById('arg2').value;
+
+        if (arg1 === "" || arg2 === "" || isNaN(Number(arg1)) || isNaN(Number(arg2))) {
+            alert("입력");
+            return;
+        } else {
+            window.location.replace("/cgi-bin/adder?" + arg1 +"&" + arg2);
+        }
+    }
+</script>
 </html>
