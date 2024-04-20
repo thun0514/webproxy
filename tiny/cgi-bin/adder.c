@@ -30,7 +30,11 @@ int main(void) {
   printf("Connection: close\r\n");
   printf("Content-length: %d\r\n", (int)strlen(content));
   printf("Content-tpye: text/html\r\n\r\n");
-  printf("%s", content);
+
+  if (getenv("")) {
+    printf("%s", content);
+  }
+
   fflush(stdout);
 
   exit(0);

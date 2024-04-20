@@ -11,9 +11,9 @@
 void doit(int fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
-void serve_static(int fd, char *filename, int filesize);
+void serve_static(int fd, char *filename, int filesize, char *method);
 void get_filetype(char *filename, char *filetype);
-void serve_dynamic(int fd, char *filename, char *cgiargs);
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 
 int main(int argc, char **argv) {
@@ -59,7 +59,7 @@ void doit(int fd) {
   sscanf(buf, "%s %s %s", method, uri, version);  // 요청 라인 파싱
 
   /* GET Method가 아닐 때 */
-  if (strcasecmp(method, "GET")) {
+  if (!(strcasecmp(method, "GET") == 0 || strcasecmp(method, "HEAD") == 0)) {
     /* 요청 메서드가 GET이 아닌 경우 "501 Not implemented" 오류 반환 */
     clienterror(fd, method, "501", "Not implemented", "Tiny does not implement this method");
     return;
@@ -87,7 +87,7 @@ void doit(int fd) {
       return;
     }
     /* 정적 콘텐츠 제공 */
-    serve_static(fd, filename, sbuf.st_size);
+    serve_static(fd, filename, sbuf.st_size, method);
 
   } else {
     /* 동적 콘텐츠인 경우 권한 확인 */
@@ -97,7 +97,7 @@ void doit(int fd) {
       return;
     }
     /* CGI 프로그램을 실행하여 동적 콘텐츠 생성 및 전송 */
-    serve_dynamic(fd, filename, cgiargs);
+    serve_dynamic(fd, filename, cgiargs, method);
   }
   
 }
@@ -159,7 +159,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
   }
 }
 
-void serve_static(int fd, char *filename, int filesize) {
+void serve_static(int fd, char *filename, int filesize, char *method) {
   int srcfd;
   char *srcp, filetype[MAXLINE], buf[MAXBUF];
 
@@ -171,6 +171,10 @@ void serve_static(int fd, char *filename, int filesize) {
   sprintf(buf, "%sContent-length: %d\r\n", buf, filesize); // 콘텐츠 길이 설정
   sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype); // MIME 타입 설정
   Rio_writen(fd, buf, strlen(buf)); // 클라이언트에게 헤더 전송
+
+  if (strcasecmp(method, "HEAD") == 0) { // HEAD 메소드를 요청 받았을 때
+    return; // 응답 바디를 전송하지 않음
+  }
 
   printf("Response header:\n");
   printf("%s", buf);
@@ -204,7 +208,7 @@ void get_filetype(char *filename, char *filetype) {
     strcpy(filetype, "text/plain");
 }
 
-void serve_dynamic(int fd, char *filename, char *cgiargs) {
+void serve_dynamic(int fd, char *filename, char *cgiargs, char *method) {
   char buf[MAXLINE], *emptylist[] = { NULL };
 
   /* Return first part of HTTP response */
@@ -216,6 +220,7 @@ void serve_dynamic(int fd, char *filename, char *cgiargs) {
   if (Fork() == 0) { /* Child */ // 자식 프로세스 생성
     /* Real server would set all CGI vars here */
     setenv("QUERY_STRING", cgiargs, 1); // QUERY_STRING 환경 변수를 URI에서 추출한 CGI 인수로 설정
+    setenv("REQUEST_METHOD", method, 1); // REQUEST_METHOD 환경 변수를 URI에서 추출한 CGI 인수로 설정
     Dup2(fd, STDOUT_FILENO); // 표준 출력을 클라이언트에 연결
     Execve(filename, emptylist, environ); // CGI 프로그램 실행
   }
