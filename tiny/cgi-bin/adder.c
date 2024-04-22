@@ -31,7 +31,7 @@ int main(void) {
   printf("Content-length: %d\r\n", (int)strlen(content));
   printf("Content-tpye: text/html\r\n\r\n");
 
-  if (getenv("")) {
+  if (strcasecmp(getenv("REQUEST_METHOD"), "GET") == 0) {
     printf("%s", content);
   }
 
