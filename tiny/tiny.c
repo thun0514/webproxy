@@ -58,7 +58,7 @@ void doit(int fd) {
   printf("%s", buf);
   sscanf(buf, "%s %s %s", method, uri, version);  // 요청 라인 파싱
 
-  /* GET Method가 아닐 때 */
+  /* GET / HEAD Method가 아닐 때 */
   if (!(strcasecmp(method, "GET") == 0 || strcasecmp(method, "HEAD") == 0)) {
     /* 요청 메서드가 GET이 아닌 경우 "501 Not implemented" 오류 반환 */
     clienterror(fd, method, "501", "Not implemented", "Tiny does not implement this method");
@@ -181,13 +181,13 @@ void serve_static(int fd, char *filename, int filesize, char *method) {
 
   /* Send response body to client */
   srcfd = Open(filename, O_RDONLY, 0); // 파일 열기
-  // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0); // 파일 메모리 매핑
-  srcp = (char *)malloc(filesize);
-  Rio_readn(srcfd ,srcp, filesize);
+  srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0); // 파일 메모리 매핑
+  // srcp = (char *)malloc(filesize);
+  // Rio_readn(srcfd ,srcp, filesize);
   Close(srcfd); // 파일 닫기
   Rio_writen(fd, srcp, filesize); // 클라이언트에게 파일 내용 전송
-  // Munmap(srcp, filesize); // 메모리 매핑 해제
-  free(srcp);
+  Munmap(srcp, filesize); // 메모리 매핑 해제
+  // free(srcp);
 }
 
 /*
