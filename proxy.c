@@ -16,6 +16,7 @@ static const char *user_agent_hdr =
 
 void doit(int fd);
 int parse_uri(char *uri, char *hostname, char *port, char *path);
+void new_requesthdrs(rio_t *rio, char *buf, char *hostname, char *port, char *path, char *method);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 
 int main(int argc, char **argv) {
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
 /* 클라이언트의 요청을 처리하는 함수 */
 void doit(int fd) {
   int serverfd;
-  char request_buf[MAXLINE], response_buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE], new_hdr[MAXLINE];
+  char request_buf[MAXLINE], response_buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
   char server_hostname[MAXLINE], server_port[MAXLINE], server_path[MAXLINE];
   rio_t rio;
 
@@ -70,8 +71,11 @@ void doit(int fd) {
   
   parse_uri(uri, server_hostname, server_port, server_path);
 
+
   sprintf(request_buf, "%s %s %s\r\n", method, server_path, NEW_VERSION);
 
+  new_requesthdrs(&rio, request_buf, server_hostname, server_port, server_path, method);
+  
   /* 클라이언트로부터 받은 요청을 서버로 전송 */
   serverfd = Open_clientfd(server_hostname, server_port);
   Rio_writen(serverfd, request_buf, strlen(request_buf));
@@ -140,9 +144,16 @@ int parse_uri(char *uri, char *hostname, char *port, char *path) {
     strcpy(port, "80");               // port가 없을 경우 "80"을 넣어줌
   }
 
-  // printf("Host: %s\n", hostname);
-  // printf("Port: %s\n", port);
-  // printf("Path: %s\n", path);
+  printf("Host: %s\n", hostname);
+  printf("Port: %s\n", port);
+  printf("Path: %s\n", path);
 
   return 0; // 성공
+}
+
+void new_requesthdrs(rio_t *rio, char *buf, char *hostname, char *port, char *path, char *method) {
+  sprintf(buf, "%sHost: %s\r\n", buf, hostname);                // Host: www.google.com     
+  sprintf(buf, "%s%s", buf, user_agent_hdr);                // User-Agent: ~(bla bla)
+  sprintf(buf, "%sConnections: close\r\n", buf);            // Connections: close
+  sprintf(buf, "%sProxy-Connection: close\r\n\r\n", buf);   // Proxy-Connection: close
 }
